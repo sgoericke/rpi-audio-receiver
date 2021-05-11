@@ -1,0 +1,31 @@
+---
+- name: Install packages
+  apt:
+    state: present
+    name:
+      - gmediarender
+      - gstreamer1.0-plugins-base
+      - gstreamer1.0-plugins-good
+      - gstreamer1.0-plugins-ugly
+      - gstreamer1.0-alsa
+    install_recommends: no
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Set device name
+  ansible.builtin.lineinfile:
+    path: /etc/default/gmediarender
+    regexp: '^.*UPNP_DEVICE_NAME='
+    line: "UPNP_DEVICE_NAME=\"{{ gmediarender_device_name }}\""
+  when: "gmediarender_device_name is defined"
+
+- name: Set initial volume
+  ansible.builtin.lineinfile:
+    path: /etc/default/gmediarender
+    regexp: '^.*INITIAL_VOLUME_DB='
+    line: "INITIAL_VOLUME_DB={{ gmediarender_initial_volume_db }}"
+
+- name: Enable gmediarender service
+  ansible.builtin.systemd:
+    name: gmediarender
+    enabled: yes

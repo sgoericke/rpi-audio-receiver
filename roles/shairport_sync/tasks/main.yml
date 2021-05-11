@@ -1,0 +1,107 @@
+---
+- name: Install dependencies
+  apt:
+    state: present
+    name:
+      - autoconf
+      - automake
+      - avahi-daemon
+      - build-essential
+      - libasound2-dev
+      - libavahi-client-dev
+      - libconfig-dev
+      - libdaemon-dev
+      - libpopt-dev
+      - libssl-dev
+      - libtool
+      - xmltoman
+      - pkg-config
+      - libsoxr0
+      - libsoxr-dev
+      - libsndfile1
+      - libsndfile1-dev
+      - libglib2.0-dev
+      - libmosquitto-dev
+      - libmosquitto1
+      - wget
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Download ALAC from GitHub
+  get_url:
+    url: https://github.com/TimothyGu/alac/archive/refs/heads/master.tar.gz
+    dest: /usr/local/src/alac.tar.gz
+
+- name: Install ALAC
+  ansible.builtin.shell: |
+    cd /usr/local/src
+    tar -xzf alac.tar.gz
+    cd alac-master
+    autoreconf -fi
+    ./configure
+    make -j $(nproc)
+    make install
+    cd ..
+    rm -rf alac-master
+    ldconfig
+  args:
+    creates: /usr/local/lib/libalac.so
+
+- name: Download shairport-sync from GitHub
+  get_url:
+    url: "https://github.com/mikebrady/shairport-sync/archive/{{ shairport_sync_version }}.tar.gz"
+    dest: "/usr/local/src/shairport_sync-v{{ shairport_sync_version }}.tar.gz"
+
+- name: Install shairport-sync
+  ansible.builtin.shell: |
+    cd /usr/local/src
+    tar xzf shairport_sync-v{{ shairport_sync_version }}.tar.gz
+    rm shairport_sync-v{{ shairport_sync_version }}.tar.gz
+    cd shairport-sync-{{ shairport_sync_version }}
+    autoreconf -fi
+    ./configure \
+        --with-alsa \
+        --with-dummy \
+        --with-avahi \
+        --with-ssl=openssl \
+        --with-soxr \
+        --with-systemd \
+        --sysconfdir=/etc \
+        --with-dbus-interface \
+        --with-mpris-interface \
+        --with-mqtt-client \
+        --with-apple-alac \
+        --with-convolution
+    make -j $(nproc)
+    make install
+    cd ..
+    rm -rf shairport-sync-{{ shairport_sync_version }}
+  args:
+    creates: /usr/local/bin/shairport-sync
+
+- name: Add user shairport-sync to group gpio
+  user:
+    name: shairport-sync
+    groups: 
+      - gpio
+    append: yes
+
+- name: Create override directory
+  file:
+    path: /etc/systemd/system/shairport-sync.service.d
+    state: directory
+
+- name: Install override
+  ansible.builtin.copy:
+    src: override.conf
+    dest: /etc/systemd/system/shairport-sync.service.d/override.conf
+
+- name: Install config
+  template:
+    src: shairport-sync.conf.j2
+    dest: /etc/shairport-sync.conf
+
+- name: Enable service
+  ansible.builtin.systemd:
+    name: shairport-sync
+    enabled: yes

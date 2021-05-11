@@ -1,0 +1,71 @@
+---
+- name: Install dependencies
+  apt:
+    state: present
+    name:
+      - alsa-base
+      - alsa-utils
+      - bluealsa
+      - bluez-tools
+    install_recommends: no
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install config
+  ansible.builtin.copy:
+    src: main.conf
+    dest: /etc/bluetooth/main.conf
+
+- name: Create bthelper directory
+  file:
+    path: /etc/systemd/system/bthelper@.service.d
+    state: directory
+
+- name: Install bthelper override
+  ansible.builtin.copy:
+    src: bthelper-override.conf
+    dest: /etc/systemd/system/bthelper@.service.d/override.conf
+
+- name: Install bt-agent service
+  ansible.builtin.copy:
+    src: bt-agent.service
+    dest: /etc/systemd/system/bt-agent.service
+
+- name: Enable bt-agent service
+  ansible.builtin.systemd:
+    name: bt-agent
+    enabled: yes
+
+- name: Create bthelper directory
+  file:
+    path: /etc/systemd/system/bluealsa.service.d
+    state: directory
+
+- name: Install bluealsa override
+  ansible.builtin.copy:
+    src: bluealsa-override.conf
+    dest: /etc/systemd/system/bluealsa.service.d/override.conf
+
+- name: Install bluealsa-aplay service
+  ansible.builtin.copy:
+    src: bluealsa-aplay.service
+    dest: /etc/systemd/system/bluealsa-aplay.service
+
+- name: Enable bluealsa-aplay service
+  ansible.builtin.systemd:
+    name: bluealsa-aplay
+    enabled: yes
+    daemon_reload: yes
+
+- name: Install Bluetooth udev script
+  ansible.builtin.copy:
+    src: bluetooth-udev
+    dest: /usr/local/bin/bluetooth-udev
+    mode: '0755'
+
+- name: Install Bluetooth udev rules
+  ansible.builtin.copy:
+    dest: /etc/udev/rules.d/99-bluetooth-udev.rules
+    content: |
+      SUBSYSTEM=="input", GROUP="input", MODE="0660"
+      KERNEL=="input[0-9]*", RUN+="/usr/local/bin/bluetooth-udev"

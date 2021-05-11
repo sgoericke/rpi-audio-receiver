@@ -1,0 +1,45 @@
+---
+- hosts: raspberrypi
+  become: true
+
+  vars:
+    #hostname: airpi-test
+    pretty_hostname: Raspberry Pi
+
+  roles:
+    #- role: bluetooth
+
+    #- role: shairport_sync
+    #  shairport_sync_name: "{{ pretty_hostname }}"
+
+    #- role: raspotify
+    #  raspotify_device_name: "{{ pretty_hostname }}"
+    #  raspotify_bitrate: 320
+    #  raspotify_volume_args: "--volume-ctrl linear --initial-volume=100"
+
+    - role: gmediarender
+      gmediarender_device_name: "{{ pretty_hostname }}"
+
+  tasks:
+    #- name: Debug
+    #  ansible.builtin.debug:
+    #    var: ansible_facts
+
+    #- name: Only works on Raspberry Pi OS Buster
+    #  assert:
+    #    that:
+    #      - ansible_facts['lsb']['id'] == 'Raspbian'
+    #      - ansible_facts['lsb']['major_release'] == '10'
+
+    #- name: Set hostname
+    #  ansible.builtin.hostname:
+    #    name: "{{ hostname }}"
+    #  when: "hostname is defined"
+
+    #- name: Read pretty hostname
+    #  command: hostnamectl status --pretty
+    #  register: result
+
+    #- name: Set pretty hostname
+    #  command: hostnamectl set-hostname --pretty "{{ pretty_hostname }}"
+    #  when: "pretty_hostname is defined and pretty_hostname != result.stdout"
